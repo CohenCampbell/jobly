@@ -1,8 +1,10 @@
 "use strict";
 
+const { DatabaseError } = require("pg");
 const db = require("../db");
 const { BadRequestError, NotFoundError } = require("../expressError");
 const { sqlForPartialUpdate } = require("../helpers/sql");
+const { search } = require("../routes/users");
 
 /** Related functions for companies. */
 
@@ -47,17 +49,51 @@ class Company {
   /** Find all companies.
    *
    * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
+   * 
+   * Optional filters are name, minEmployees, maxEmployees
+   * name is case-insensitive 
+   * 
+   * If no filters are found, returns all companies
    * */
 
-  static async findAll() {
-    const companiesRes = await db.query(
-          `SELECT handle,
-                  name,
-                  description,
-                  num_employees AS "numEmployees",
-                  logo_url AS "logoUrl"
-           FROM companies
-           ORDER BY name`);
+  static async findAll(queryStr = {}) {
+    let query = `SELECT handle,
+                        name,
+                        description,
+                        num_employees AS "numEmployees",
+                        logo_url AS "logoUrl"
+                 FROM companies`;
+ 
+    const {name, minEmployees, maxEmployees} = queryStr;
+    let whereExpressions = [];
+    let queryValues = [];
+
+    if (minEmployees > maxEmployees) {
+      throw new BadRequestError("minEmployees cannot be greater than maxEmployees!");
+    }
+
+    if(minEmployees !== undefined){
+      queryValues.push(minEmployees);
+      whereExpressions.push(`num_employees >= $${queryValues.length}`);
+    }
+
+    if(maxEmployees !== undefined){
+      queryValues.push(maxEmployees);
+      whereExpressions.push(`num_employees <= $${queryValues.length}`);
+    }
+
+    if(name){
+      queryValues.push(`%${name}%`);
+      whereExpressions.push(`name ILIKE $${queryValues.length}`);
+    }
+
+    if(whereExpressions.length > 0){
+      query += " WHERE " + whereExpressions.join(" AND ");
+    }
+
+    query += " ORDER BY name";
+    console.log(query, queryValues)
+    const companiesRes = await db.query(query, queryValues);
     return companiesRes.rows;
   }
 
