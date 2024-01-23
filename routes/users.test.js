@@ -13,7 +13,9 @@ const {
   commonAfterAll,
   u1Token,
   a1Token,
+  jobIds
 } = require("./_testCommon");
+const TestAgent = require("supertest/lib/agent.js");
 
 beforeAll(commonBeforeAll);
 beforeEach(commonBeforeEach);
@@ -35,6 +37,7 @@ describe("POST /users", function () {
           isAdmin: false,
         })
         .set("authorization", `Bearer ${a1Token}`);
+        
     expect(resp.statusCode).toEqual(201);
     expect(resp.body).toEqual({
       user: {
@@ -329,6 +332,38 @@ describe("DELETE /users/:username", function () {
   test("not found if user missing", async function () {
     const resp = await request(app)
         .delete(`/users/nope`)
+        .set("authorization", `Bearer ${a1Token}`);
+    expect(resp.statusCode).toEqual(404);
+  });
+});
+
+/****************************************POST /users/:username/jobs/:id */
+
+describe("POST /users/:username/jobs/:id", function(){
+  test("work for admin", async function(){
+    const resp = await request(app)
+        .post(`/users/u1/jobs/${jobIds[0]}`)
+        .set("authorization", `Bearer ${a1Token}`);
+    expect(resp.body).toEqual({ applied: jobIds[0] });
+  });
+
+  test("works for correct user", async function(){
+    const resp = await request(app)
+    .post(`/users/u1/jobs/${jobIds[0]}`)
+    .set("authorization", `Bearer ${u1Token}`);
+    expect(resp.body).toEqual({ applied: jobIds[0] }); 
+  });
+
+  test("not found for no such username", async function () {
+    const resp = await request(app)
+        .post(`/users/nope/jobs/${jobIds[0]}`)
+        .set("authorization", `Bearer ${a1Token}`);
+    expect(resp.statusCode).toEqual(404);
+  });
+
+  test("not found for no such job", async function () {
+    const resp = await request(app)
+        .post(`/users/u1/jobs/0`)
         .set("authorization", `Bearer ${a1Token}`);
     expect(resp.statusCode).toEqual(404);
   });

@@ -8,6 +8,7 @@ const express = require("express");
 const { ensureLoggedIn, ensureLoggedInAdmin } = require("../middleware/auth");
 const { BadRequestError, UnauthorizedError } = require("../expressError");
 const User = require("../models/user");
+const Job = require("../models/job");
 const { createToken } = require("../helpers/tokens");
 const userNewSchema = require("../schemas/userNew.json");
 const userUpdateSchema = require("../schemas/userUpdate.json");
@@ -34,7 +35,6 @@ router.post("/", ensureLoggedInAdmin, async function (req, res, next) {
       const errs = validator.errors.map(e => e.stack);
       throw new BadRequestError(errs);
     }
-
     const user = await User.register(req.body);
     const token = createToken(user);
     return res.status(201).json({ user, token });
@@ -42,7 +42,6 @@ router.post("/", ensureLoggedInAdmin, async function (req, res, next) {
     return next(err);
   }
 });
-
 
 /** GET / => { users: [ {username, firstName, lastName, email }, ... ] }
  *
@@ -121,5 +120,24 @@ router.delete("/:username", ensureLoggedIn, async function (req, res, next) {
   }
 });
 
+/** POST /[username]/jobs/[id]  { state } => { application }
+ *
+ * Returns {"applied": jobId}
+ *
+ * Authorization required: admin or same-user-as-:username
+ * */
+
+router.post("/:username/jobs/:id", async function(req, res, next){
+  try {
+    if(res.locals.user.isAdmin !== true){
+      if(res.locals.user.username !== req.params.username) return new UnauthorizedError();
+    }
+    const jobId = +req.params.id;
+    await User.apply(req.params.username, jobId);
+    return res.json({ applied: jobId });
+  } catch (err) {
+    return next(err);
+  }
+})
 
 module.exports = router;

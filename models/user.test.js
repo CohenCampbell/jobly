@@ -12,6 +12,7 @@ const {
   commonBeforeEach,
   commonAfterEach,
   commonAfterAll,
+  jobIds,
 } = require("./_testCommon");
 
 beforeAll(commonBeforeAll);
@@ -20,7 +21,6 @@ afterEach(commonAfterEach);
 afterAll(commonAfterAll);
 
 /************************************** authenticate */
-
 describe("authenticate", function () {
   test("works", async function () {
     const user = await User.authenticate("u1", "password1");
@@ -228,3 +228,39 @@ describe("remove", function () {
     }
   });
 });
+
+/****************************************Apply for jobs */
+describe("apply methods", function(){
+  test("works", async function(){
+    await User.apply("u1", jobIds[0]["id"]);
+    
+    const res = await db.query(
+      "SELECT * FROM applications WHERE job_id=$1", [jobIds[0]["id"]]);
+      expect(res.rows).toEqual([
+        {
+          "job_id": jobIds[0]["id"],
+          "username": "u1",
+              }
+      ]);
+  });
+
+  test("no user", async function(){
+    try{
+      const res = await User.apply("xyzzzz", jobIds[0]["id"]);
+      fail();
+    } catch(err) {
+      console.log(err)
+      expect(err instanceof NotFoundError).toBeTruthy();
+    }  
+  });
+
+  test("no jobId", async function(){
+    try{
+      const res = await User.apply("u1", 0);
+      fail();
+    } catch(err) {
+      console.log(err)
+      expect(err instanceof NotFoundError).toBeTruthy();
+    }  
+  });
+})

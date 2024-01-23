@@ -1,3 +1,5 @@
+"use strict";
+
 const { DatabaseError } = require("pg");
 const db = require("../db");
 const { BadRequestError, NotFoundError } = require("../expressError");
@@ -75,8 +77,8 @@ class Job {
    }
 
     query += " ORDER BY title";
-    const jobsRes = await db.query(query, queryValues);
-    return companiesRes.rows;
+    const jobRes = await db.query(query, queryValues);
+    return jobRes.rows;
   }
 
   /** Given a job id, return data about job.
@@ -128,7 +130,7 @@ class Job {
    * Throws NotFoundError if not found.
    */
 
-  static async update(handle, data) {
+  static async update(id, data) {
     const { setCols, values } = sqlForPartialUpdate(
         data,
         {});

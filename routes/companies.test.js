@@ -12,6 +12,7 @@ const {
   commonAfterAll,
   u1Token,
   a1Token,
+  jobIds,
 } = require("./_testCommon");
 
 beforeAll(commonBeforeAll);
@@ -122,15 +123,35 @@ describe("GET /companies", function () {
 describe("GET /companies/:handle", function () {
   test("works for anon", async function () {
     const resp = await request(app).get(`/companies/c1`);
-    expect(resp.body).toEqual({
-      company: {
+    expect(resp.body["company"]).toEqual({
+      
         handle: "c1",
+        "jobs": [
+           {
+            "equity": "0.1",
+            "id": jobIds[0],
+            "salary": 1,
+            "title": "J1",
+          },
+           {
+            "equity": "0.2",
+            "id": jobIds[1],
+            "salary": 2,
+            "title": "J2",
+          },
+           {
+            "equity": null,
+            "id": jobIds[2],
+            "salary": 3,
+            "title": "J3",
+          },
+        ],
         name: "C1",
         description: "Desc1",
         numEmployees: 1,
         logoUrl: "http://c1.img",
       },
-    });
+    );
   });
 
   test("works for anon: company w/o jobs", async function () {
@@ -138,6 +159,7 @@ describe("GET /companies/:handle", function () {
     expect(resp.body).toEqual({
       company: {
         handle: "c2",
+        jobs: [],
         name: "C2",
         description: "Desc2",
         numEmployees: 2,
